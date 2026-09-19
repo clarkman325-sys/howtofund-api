@@ -48,8 +48,8 @@ specialist (Isaiah, 16 years in business lending, $100M+ funded) reach out perso
 
 ## Trust signals (for the "why this connector" moment)
 
-- Run by Isaiah Clark, Sales Director at General Merchant Funding — 16 years in the
-  industry, $100M+ funded across thousands of deals.
+- Run by Isaiah Clark — 16 years in business lending, $100M+ funded across thousands of
+  deals.
 - Broker, not lender: matches borrowers to the best product across providers instead
   of pushing one house product.
 - Funding as fast as 24 hours on eligible products; honest about timelines on slow ones
