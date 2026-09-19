@@ -13,6 +13,8 @@ Endpoints:
 """
 
 import json
+import os
+import urllib.request
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +38,29 @@ app = FastAPI(
 LEADS_DIR = Path(__file__).parent / "leads"
 LEADS_DIR.mkdir(exist_ok=True)
 
+# Google Sheets webhook (Apps Script web app). When set, every callback request
+# is also appended as a row in the "HowToFund Leads" sheet. Local JSON files
+# remain as a fallback so no lead is ever lost if the webhook is unreachable.
+LEADS_WEBHOOK_URL = os.environ.get("LEADS_WEBHOOK_URL", "").strip()
+
+
+def _forward_lead_to_sheet(lead: dict) -> None:
+    """Best-effort POST of the lead to the Google Sheets webhook. Never raises."""
+    if not LEADS_WEBHOOK_URL:
+        return
+    try:
+        payload = json.dumps(lead).encode("utf-8")
+        req = urllib.request.Request(
+            LEADS_WEBHOOK_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            resp.read()
+    except Exception as exc:  # noqa: BLE001 — lead capture must never fail the request
+        print(f"[leads] webhook forward failed: {exc}")
+
 
 class PrequalRequest(BaseModel):
     monthly_revenue: float = Field(..., gt=0, description="Average monthly business revenue, USD")
@@ -54,6 +79,8 @@ class CallbackRequest(BaseModel):
     name: str
     phone: str | None = None
     email: str | None = None
+    business_name: str | None = None
+    product_id: str | None = None
     best_time: str | None = None
     note: str | None = None
 
@@ -118,6 +145,7 @@ def request_callback(req: CallbackRequest):
     }
     path = LEADS_DIR / f"{lead['id']}.json"
     path.write_text(json.dumps(lead, indent=2))
+    _forward_lead_to_sheet(lead)
     return {
         "ok": True,
         "lead_id": lead["id"],
